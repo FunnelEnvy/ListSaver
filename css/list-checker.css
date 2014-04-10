@@ -1,0 +1,17 @@
+.bg-danger,.bg-success{ padding:10px !important;}
+
+#mc-embedded-subscribe-form .error {
+ background:  #FF6347;
+ color: #FFFFFF;
+ font-size: 15px;
+  padding-left: 10px;
+}
+
+#mc-embedded-subscribe-form .success {
+ background:  #18ff98;
+ color: #000000;
+ font-size: 15px;
+ padding-left: 10px;
+}
+
+
