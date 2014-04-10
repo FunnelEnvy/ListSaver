@@ -1,0 +1,67 @@
+jQuery(document).ready(function($){
+  
+  $('form[action*="'+wtm.form_action_url+'"]').submit(function(e){
+    
+    form = $(this);
+
+    if( form.attr('data-submit') == 1)
+    
+    return;
+    
+    e.preventDefault();    
+   
+    var email, fname, lname;
+
+    email = form.find('input[name*="email"]').val(); 
+    
+    fname = form.find('input[name*="fname"]').length ? form.find('input[name*="fname"]').val() : '' ; 
+    
+    lname = form.find('input[name*="lname"]').length ? form.find('input[name*="lname"]').val() : ''; 
+    
+   
+    var form_data = {
+       
+       action : 'lc_ajax_mailchimp_subscribe',
+       
+       email :  email,
+       
+       first_name:  fname,
+       
+       last_name:  lname,
+     }
+    
+     $.ajax({
+    
+      url: wtm.ajaxUrl,
+   
+      data: form_data,
+
+      type: 'POST',
+
+      dataType : 'json',
+
+      beforeSend : function(){
+
+        form.find('input[type="submit"]').val(' Wait.... ');
+      },
+
+      success : function(resp){
+       
+         form.attr('data-submit', 1);
+         
+         form.submit();    
+              
+       }
+
+      
+
+
+     })
+     
+     
+
+  })
+  
+  
+
+})
