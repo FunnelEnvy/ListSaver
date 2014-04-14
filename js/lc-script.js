@@ -1,5 +1,6 @@
 jQuery(document).ready(function($){
-	$(document).on( 'submit', 'form[action*="'+wtm.form_action_url+'"]', function(e) {
+	
+	$('form[action*="'+wtm.form_action_url+'"]').submit(function(e){
     
     form = $(this);
 

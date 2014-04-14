@@ -12,16 +12,29 @@
 
  */
 
-add_action('init', 'lc_manage_init');
-
 include_once('configuration.php');
 
 
+add_action('init', 'list_saver_manage_init');
 
-add_action( 'lc_mailchimp_event', 'lc_mailchimp_subscriber_event' );
+add_action( 'list_saver_mailchimp_event', 'list_saver_mailchimp_subscriber_event' );
 
-function lc_mailchimp_subscriber_event($is_cron=true){
+add_action( 'wp_enqueue_scripts', 'list_saver_admin_enqueue_scripts' );
+
+/**
+ * This function used to register all hooks.
+ */
+function list_saver_manage_init(){
+ 		
+	add_action('admin_menu', 'list_saver_admin_manage_menu_page');
+	
+
+}
+
+function list_saver_mailchimp_subscriber_event($is_cron=true){
  
+  $mandrill_mail = false;
+   
   include_once( LC_CLASSES_PATH . '/class.subscription.php');
   
   $subscription = new Subscription();
@@ -34,6 +47,23 @@ function lc_mailchimp_subscriber_event($is_cron=true){
   include_once( LC_CLASSES_PATH . '/class.mailchimp.php');
 	
   $settings=get_option('lc_settings');
+  
+  if( $settings['mandrill'] == 'yes'){
+	
+	include( dirname(__FILE__).'/classes/class.mandrill.php');  
+	
+	$mandrill = new LC_Mandrill(trim($settings['mandrll_api_key']));
+	
+	$resp = $mandrill->call("/users/ping", array());
+	
+	if($resp == 'PONG!')
+	
+	$mandrill_mail = true;
+  
+  }
+  
+  
+  
   
   $api_key=$settings['lc_api_key'];
   
@@ -89,8 +119,8 @@ if($is_cron==true)
 		   'id'        => $list_id,
 		   'emails'    => array(array('email'=>$subscriber->sub_email))
 		 ));
-
-
+		 
+		
 		 		
 		 if( isset($member_info['data']) ){
 		  		
@@ -108,16 +138,25 @@ if($is_cron==true)
        
 			$subject = $settings['lc_mail_subject'] ? stripslashes($settings['lc_mail_subject']) : "Confirm subscriber";
 				    				    			   
-			add_filter ("wp_mail_content_type", "lc_send_email_html");
+			add_filter ("wp_mail_content_type", "list_saver_send_email_html");
 			
-
-
-			if(wp_mail($subscriber->sub_email, $subject, nl2br($custom_message)) )
-			{
-				// Now Update email_sent to true
+            if($mandrill_mail){
+				
+			  if( $mandrill->send_mail($subscriber->sub_email, $subject, nl2br($custom_message) ) )
+			  
+			  Database::InsertOrUpdate($subscription->table,array('sub_email_sent' => 'true'),array('sub_id' => $subscriber->sub_id) );
+	
+				
+			}else{
+				
+				if(wp_mail($subscriber->sub_email, $subject, nl2br($custom_message)) )
+				  // Now Update email_sent to true
 				Database::InsertOrUpdate($subscription->table,array('sub_email_sent' => 'true'),array('sub_id' => $subscriber->sub_id) );
 
+				
 			}
+
+			
 
 		 }
 else
@@ -136,44 +175,39 @@ return false;
 
 }
 
-/**
- * This function used to register all hooks.
- */
-function lc_manage_init(){
- 	
+function list_saver_admin_enqueue_scripts(){
 	
-	wp_enqueue_style( 'lc_manage_plugin_style1', plugins_url( '/css/bootstrap/css/bootstrap.css', __FILE__ ) );
-	wp_enqueue_style( 'lc_manage_plugin_style3', plugins_url( '/css/list-checker.css', __FILE__ ) );
-	wp_enqueue_script('jquery');
-	wp_enqueue_script('lc_manage_plugin_scrpt', plugins_url( '/css/bootstrap/js/bootstrap.min.js', __FILE__ ));
-	add_action('admin_menu', 'register_lc_manage_menu_page');
-	
-
-}
-
-
-add_action( 'wp_enqueue_scripts', 'lc_admin_enqueue_scripts' );
-
-function lc_admin_enqueue_scripts(){
 	$settings = get_option('lc_settings');
 	wp_enqueue_script( 'general', plugins_url('js/lc-script.js',__FILE__), array('jquery') );
 	wp_localize_script( 'general', 'wtm', array('ajaxUrl' => admin_url('admin-ajax.php'), 'form_action_url' => $settings['lc_formaction_url'] ) );
+
 }
 
 /**
  * This function used to display List Chekcer menu in backend.
  */
-function register_lc_manage_menu_page(){
+function list_saver_admin_manage_menu_page(){
 	
-	add_options_page('List Saver', 'List Saver', 'manage_options','lc_manage', 'lc_manage_display', '');
+	$page_hook = add_options_page('List Saver', 'List Saver', 'manage_options','lc_manage', 'list_saver_manage_display', '');
+	
+	add_action('load-'.$page_hook, 'list_saver_admin_scripts');
 
+}
+
+function list_saver_admin_scripts(){
+
+    wp_enqueue_style( 'lc_manage_plugin_style1', plugins_url( '/css/bootstrap/css/bootstrap.css', __FILE__ ) );
+	wp_enqueue_style( 'lc_manage_plugin_style3', plugins_url( '/css/list-checker.css', __FILE__ ) );
+	wp_enqueue_script('jquery');
+	wp_enqueue_script('lc_manage_plugin_scrpt', plugins_url( '/css/bootstrap/js/bootstrap.min.js', __FILE__ ));
+	
 }
 
 /**
  * This function used to display List Checker Dashboard.
  */
 
-function lc_manage_display(){
+function list_saver_manage_display(){
 	
 	$tabs = array( 'lc_active_subscriptions' => 'Active Subscriptions','lc_pending_subscriptions' => 'Pending Subscriptions','lc_settings' => 'Settings' );
 	
@@ -201,14 +235,14 @@ function lc_manage_display(){
 	
 	switch( $current_tab ){
 		
-	  case 'lc_active_subscriptions'	:   lc_active_subscriptions(); break;	
+	  case 'lc_active_subscriptions'	:   list_saver_active_subscriptions(); break;	
 	 
-	  case 'lc_pending_subscriptions'	:   lc_pending_subscriptions(); break;
+	  case 'lc_pending_subscriptions'	:   list_saver_pending_subscriptions(); break;
 
-	  case 'lc_settings'	:   lc_settings(); break;
+	  case 'lc_settings'	:   list_saver_settings(); break;
 	  
 	  
-	  default : lc_active_subscriptions();
+	  default : list_saver_active_subscriptions();
 		
 	}
 	
@@ -220,7 +254,7 @@ function lc_manage_display(){
 /**
  * This function used to view active subscriptions in backend.
  */
-function lc_active_subscriptions(){
+function list_saver_active_subscriptions(){
 	
 	include_once( LC_CLASSES_PATH . '/class.subscription.php');
 	
@@ -233,7 +267,7 @@ function lc_active_subscriptions(){
 /**
  * This function used to view pending subscriptions in backend.
  */
-function lc_pending_subscriptions(){
+function list_saver_pending_subscriptions(){
 	
 	include_once( LC_CLASSES_PATH . '/class.subscription.php');
 	
@@ -248,17 +282,15 @@ function lc_pending_subscriptions(){
  * This function used to settings in backend.
  */
 
-function lc_settings()
-{
+function list_saver_settings(){
 	$lc_settings=get_option('lc_settings');
   
 ?>
 <div class="wrap">  
 <div id="icon-options-general" class="icon32"><br></div>
-		
+		<h2><?php _e( 'Settings', 'lc_language' ) ?></h2><br>
         <form class='form' role="form" method="post" action="options.php">  
         <?php wp_nonce_field('update-options') ?>
-        <h2><?php _e( 'Mailchimp Settings', 'lc_language' ) ?></h2><br>
         <div class='form-group'> 
 		<label>API KEY</label>
 		<input type="textbox"  class="form-control" name="lc_settings[lc_api_key]" id="lc_api_key" value="<?php echo $lc_settings['lc_api_key']; ?>" />
@@ -284,7 +316,17 @@ function lc_settings()
                 </select>
                 <p class="description">Set number of days for reminder email after the user signs up </p>
 		</div>
-		<h2><?php _e( 'Email/Message Settings', 'lc_language' ) ?></h2><br>
+		<div class='form-group'> 
+		<label>Use Mandrill Email</label>
+		 <select name="lc_settings[mandrill]" id="mandrill" class="form-control" style="width:70px;" onChange="if(this.value == 'yes') jQuery('#mandrill_options').show(); else jQuery('#mandrill_options').hide();">
+		   <option value="no" <?php selected($lc_settings['mandrill'], 'no'); ?>>No</option>
+		   <option value="yes" <?php selected($lc_settings['mandrill'], 'yes'); ?>>Yes</option>
+		 </select>
+		</div> 	
+		<div class='form-group' id="mandrill_options" style="display:<?php if($lc_settings['mandrill'] == 'yes') echo "inline"; else echo "none"; ?>;"> 
+		<label>Mandrill Api Key</label>
+		 <input type="text" name="lc_settings[mandrll_api_key]" id="mandrill_api_key" value="<?php echo esc_attr($lc_settings['mandrll_api_key']) ?>" class="form-control">
+		 </div> 
 		<div class='form-group'> 
 		<label>Subject</label>
 		<input type="text" class="form-control" style="width:500px;" name="lc_settings[lc_mail_subject]" id="lc_mail_subject" value="<?php echo stripslashes($lc_settings['lc_mail_subject']); ?>" />
@@ -306,30 +348,34 @@ function lc_settings()
 /**
  * This function used to show success/failure message in backend.
  */
-function lc_manage_show_message($message, $errormsg = false){
+function list_saver_manage_show_message($message, $errormsg = false){
+	
 	if(empty($message))
 		return;
+	
 	if ($errormsg)
 		echo '<div id="message" class="error">';
+	
 	else 
 		echo '<div id="message" class="updated">';
+	
 	echo "<p><strong>$message</strong></p></div>";
 }
 
 
-register_activation_hook(__FILE__, 'lc_manage_plugin_activation');
+register_activation_hook(__FILE__, 'list_saver_manage_plugin_activation');
 
-register_deactivation_hook(__FILE__, 'lc_manage_plugin_deactivation'); 
+register_deactivation_hook(__FILE__, 'list_saver_manage_plugin_deactivation'); 
 
 /**
  * This function used to install required tables in database.
  */
-function lc_manage_plugin_activation(){
+function list_saver_manage_plugin_activation(){
 	
 	global $wpdb;
 	
 	
-	$sql = "CREATE TABLE IF NOT EXISTS ".TBL_EMAILS." (
+	$sql = "CREATE TABLE ".TBL_EMAILS." (
              sub_id INT UNSIGNED AUTO_INCREMENT,
 			 sub_email VARCHAR(100) NOT NULL,
 			 sub_first_name VARCHAR(100) NOT NULL,
@@ -347,9 +393,9 @@ function lc_manage_plugin_activation(){
   
   // Add a Daily Cron Job here...
   
-  if ( ! wp_next_scheduled('lc_mailchimp_event') ) {
+  if ( ! wp_next_scheduled('list_saver_mailchimp_event') ) {
 	 
-	  wp_schedule_event( time(), 'daily', 'lc_mailchimp_event');
+	  wp_schedule_event( time(), 'daily', 'list_saver_mailchimp_event');
 	
 	}
 
@@ -358,11 +404,11 @@ function lc_manage_plugin_activation(){
 /**
  * This function used to do required action on deactivation.
  */
-function lc_manage_plugin_deactivation(){
+function list_saver_manage_plugin_deactivation(){
 	
 	//remove cron job here
 	
-	wp_clear_scheduled_hook( 'lc_mailchimp_event' );
+	wp_clear_scheduled_hook( 'list_saver_mailchimp_event' );
 
 	
 }
@@ -371,18 +417,18 @@ function lc_manage_plugin_deactivation(){
  * This function used to clean up everything if plugin deleted.
  */
 
-register_uninstall_hook( __FILE__, 'lc_plugin_clean_up' );
+register_uninstall_hook( __FILE__, 'list_saver_plugin_clean_up' );
 
-function lc_plugin_clean_up()
+function list_saver_plugin_clean_up()
 {
    
 	//remove settings here
 	delete_option('lc_settings');
 	
 	//cron job
-	if ( wp_next_scheduled( 'lc_mailchimp_event' ) ) 
+	if ( wp_next_scheduled( 'list_saver_mailchimp_event' ) ) 
 	{
-      wp_clear_scheduled_hook( 'lc_mailchimp_event' );
+      wp_clear_scheduled_hook( 'list_saver_mailchimp_event' );
     }
     
     //delete database
@@ -393,11 +439,11 @@ function lc_plugin_clean_up()
 	
 } 
 
-add_action( 'wp_ajax_lc_ajax_mailchimp_subscribe', 'lc_ajax_mailchimp_subscribe' );
+add_action( 'wp_ajax_lc_ajax_mailchimp_subscribe', 'list_saver_ajax_mailchimp_subscribe' );
 
-add_action( 'wp_ajax_nopriv_lc_ajax_mailchimp_subscribe', 'lc_ajax_mailchimp_subscribe' );
+add_action( 'wp_ajax_nopriv_lc_ajax_mailchimp_subscribe', 'list_saver_ajax_mailchimp_subscribe' );
 
-function lc_ajax_mailchimp_subscribe(){
+function list_saver_ajax_mailchimp_subscribe(){
 	
   global $wpdb;	
    
@@ -436,16 +482,8 @@ function lc_ajax_mailchimp_subscribe(){
    
 }
 
-function run_error_json($mesg){
-   $ajax_response = array(); 
-   $ajax_response['error'] = 1;
-   $ajax_response['message'] = $mesg;
-   echo json_encode( $ajax_response); 
-   exit;
-}
 
-
-function lc_set_action_url($query_args){
+function list_saver_set_action_url($query_args){
   	
  return add_query_arg($query_args);
 
@@ -459,31 +497,33 @@ function mailchimp_response_in_cron_run($dta){
 
 }
 
-function lc_send_email_html(){
-return "text/html";	
+function list_saver_send_email_html(){
+  return "text/html";	
 }
 
-add_filter('rewrite_rules_array', 'add_rewrite_rules_custom');
+add_filter('rewrite_rules_array', 'list_saver_add_rewrite_rules_custom');
 
-add_filter('query_vars', 'lc_query_vars');
+add_filter('query_vars', 'list_saver_query_vars');
 
-function lc_query_vars($new_var) {
+add_action( 'template_redirect', 'list_saver_confirm_subscription' );
+
+
+function list_saver_query_vars($new_var) {
 $new_var[] = "subscribe";
 $new_var[] = "euid";
 return $new_var;
 }
 
 
-function add_rewrite_rules_custom($rules){
+function list_saver_add_rewrite_rules_custom($rules){
   
-  $subscriber_rules = array('subscribe/([^/]*)/([^/]*)/?$'=>'index.php?&subscribe=$matches[1]&euid=$matches[2]');
+  $subscriber_rules = array('^subscribe/([^/]*)/([^/]*)/?'=>'index.php?&subscribe=$matches[1]&euid=$matches[2]');
   $rules = $subscriber_rules+$rules;
   return $rules;
 }
 
-add_action( 'template_redirect', 'lc_confirm_subscription' );
 
-function lc_confirm_subscription(){
+function list_saver_confirm_subscription(){
  
  global $wp_query;
   

@@ -11,14 +11,6 @@
  </form>
 </div></div>
 <?php endif; ?>	
-<?php if( $_GET['tab'] == 'lc_active_subscriptions' ): ?>
- <div class='rows' style="height:38px"><div class='col-sm-11'>
- <form method="post" action="" style="float:right">
-  <input type="hidden" name="delete_subscriber" value="delete">
-  <input type="submit" value="Delete Completed Subscribers" class="button-primary">
- </form>
-</div></div>
-<?php endif; ?>	
 <div class='rows'><div class='col-sm-11'>
 <div id="rules">
 
