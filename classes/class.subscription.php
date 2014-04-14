@@ -260,6 +260,18 @@ class Subscription extends Plugin_Base
 		return Database::NonQuery($this->query, $connection);
 	}
 	
+	/**
+	* Deletes the object from the database
+	* @return boolean
+	*/
+	function lc_mailchimp_subscriber_delete()
+	{
+	
+		$connection = Database::Connect();
+		$this->query = $connection->prepare("DELETE FROM $this->table WHERE sub_status='%s' or sub_email_sent='%s' ",'a','true');
+		return Database::NonQuery($this->query, $connection);
+	
+	}
 	
 	 /**
 	 * View for Manage Subscriptions
@@ -270,13 +282,14 @@ class Subscription extends Plugin_Base
 	 {  
  
         if( isset($_POST) && $_POST['pending_subscriber'] == 'send' ){
-       
-         list_saver_mailchimp_subscriber_event(false);
-       
-         list_saver_manage_show_message('Reminder email sent successfully.');
-       
+         lc_mailchimp_subscriber_event(false);
+         lc_manage_show_message('Reminder email sent successfully.');
         }
 
+		if( isset($_POST) && $_POST['delete_subscriber'] == 'delete' ){
+         $this->lc_mailchimp_subscriber_delete();
+         lc_manage_show_message('Active & Email Sent subscribers deleted successfully.');
+        }
 		 $all_subscriptions=$this->Get(array(array('sub_status','=',$status)));
 		 ob_start();
 		 include( LC_VIEWS_PATH . '/view-manage-subscriptions.php');
