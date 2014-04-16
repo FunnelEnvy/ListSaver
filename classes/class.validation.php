@@ -1,8 +1,8 @@
 <?php
 
-Class Validator {
+Class List_Saver_Validator {
 
-	function Validator() {
+	function List_Saver_Validator() {
 		$this->id = 0;
 	}
 

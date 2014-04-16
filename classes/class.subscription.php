@@ -2,7 +2,7 @@
 /*
 	This SQL query will create the table to store your object.
 
-	CREATE TABLE IF NOT EXISTS lc_subscriptions (
+	CREATE TABLE IF NOT EXISTS list_saver_subscriptions (
              sub_id INT UNSIGNED AUTO_INCREMENT,
 			 sub_first_name VARCHAR(100) NOT NULL,
 			 sub_last_name VARCHAR(100) NOT NULL,
@@ -22,10 +22,10 @@
 * @author Sandeep Kumar
 * @version 1.0
 */
-if(!class_exists('Plugin_Base'))
+if(!class_exists('List_Saver_Plugin_Base'))
 include_once( 'class.base.php' );
 
-class Subscription extends Plugin_Base
+class List_Saver_Subscription extends List_Saver_Plugin_Base
 {
 	public $sub_id = '';
 
@@ -76,7 +76,7 @@ class Subscription extends Plugin_Base
 	
 	);
 	
-	function Subscription()
+	function List_Saver_Subscription()
 	{
 		global $configuration;
 		$this->table=TBL_EMAILS;
@@ -129,7 +129,7 @@ class Subscription extends Plugin_Base
 	*/
 	function Get($fcv_array = array(), $sortBy='', $ascending=true, $limit='')
 	{
-		$connection = Database::Connect();
+		$connection = List_Saver_Database::Connect();
 		$sqlLimit = ($limit != '' ? "LIMIT $limit" : '');
 		$this->query = "SELECT * FROM $this->table ";
 		$ruleList = Array();
@@ -153,18 +153,18 @@ class Subscription extends Plugin_Base
 					{
 						if ($GLOBALS['configuration']['db_encoding'] == 1)
 						{
-							$value = Plugin_Base::IsColumn($fcv_array[$i][2]) ? "BASE64_DECODE(".$fcv_array[$i][2].")" : "'".$fcv_array[$i][2]."'";
+							$value = List_Saver_Plugin_Base::IsColumn($fcv_array[$i][2]) ? "BASE64_DECODE(".$fcv_array[$i][2].")" : "'".$fcv_array[$i][2]."'";
 							$this->query .= "BASE64_DECODE(`".$fcv_array[$i][0]."`) ".$fcv_array[$i][1]." ".$value;
 						}
 						else
 						{
-							$value =  Plugin_Base::IsColumn($fcv_array[$i][2]) ? $fcv_array[$i][2] : "'".$this->Escape($fcv_array[$i][2])."'";
+							$value =  List_Saver_Plugin_Base::IsColumn($fcv_array[$i][2]) ? $fcv_array[$i][2] : "'".$this->Escape($fcv_array[$i][2])."'";
 							$this->query .= "`".$fcv_array[$i][0]."` ".$fcv_array[$i][1]." ".$value;
 						}
 					}
 					else
 					{
-						$value = Plugin_Base::IsColumn($fcv_array[$i][2]) ? $fcv_array[$i][2] : "'".$fcv_array[$i][2]."'";
+						$value = List_Saver_Plugin_Base::IsColumn($fcv_array[$i][2]) ? $fcv_array[$i][2] : "'".$fcv_array[$i][2]."'";
 						$this->query .= "`".$fcv_array[$i][0]."` ".$fcv_array[$i][1]." ".$value;
 					}
 				}
@@ -194,7 +194,7 @@ class Subscription extends Plugin_Base
 		}
 		$this->query .= " ORDER BY ".$sortBy." ".($ascending ? "ASC" : "DESC")." $sqlLimit";
 		$thisObjectName = get_class($this);
-		$cursors = Database::Reader($this->query, $connection);
+		$cursors = List_Saver_Database::Reader($this->query, $connection);
 		
 		foreach( $cursors as $row)
 		{
@@ -217,11 +217,11 @@ class Subscription extends Plugin_Base
 	*/
 	function Save()
 	{
-		$connection = Database::Connect();
+		$connection = List_Saver_Database::Connect();
 		$rows = 0;
 		if ( $this->rule_id != '' ){
 			$this->query = $connection->prepare("SELECT $this->unique FROM $this->table WHERE $this->unique='%d' LIMIT 1",$this->rule_id);
-			$rows = Database::Query($this->query, $connection);
+			$rows = List_Saver_Database::Query($this->query, $connection);
 		}
 		
 			$data['sub_first_name'] = $this->Escape($this->sub_first_name);
@@ -239,7 +239,7 @@ class Subscription extends Plugin_Base
 			$where='';
 		}
 	
-		$insertId = Database::InsertOrUpdate($this->table,$data,$where);
+		$insertId = List_Saver_Database::InsertOrUpdate($this->table,$data,$where);
 		
 		if ($this->sub_id == "")
 		{
@@ -255,21 +255,21 @@ class Subscription extends Plugin_Base
 	*/
 	function Delete()
 	{
-		$connection = Database::Connect();
+		$connection = List_Saver_Database::Connect();
 		$this->query = $connection->prepare("DELETE FROM $this->table WHERE $this->unique='%d'",$this->sub_id);
-		return Database::NonQuery($this->query, $connection);
+		return List_Saver_Database::NonQuery($this->query, $connection);
 	}
 	
 	/**
 	* Deletes the object from the database
 	* @return boolean
 	*/
-	function lc_mailchimp_subscriber_delete()
+	function list_saver_mailchimp_subscriber_delete()
 	{
 	
-		$connection = Database::Connect();
+		$connection = List_Saver_Database::Connect();
 		$this->query = $connection->prepare("DELETE FROM $this->table WHERE sub_status='%s' or sub_email_sent='%s' ",'a','true');
-		return Database::NonQuery($this->query, $connection);
+		return List_Saver_Database::NonQuery($this->query, $connection);
 	
 	}
 	
@@ -282,24 +282,21 @@ class Subscription extends Plugin_Base
 	 {  
  
         if( isset($_POST) && $_POST['pending_subscriber'] == 'send' ){
-         lc_mailchimp_subscriber_event(false);
-         lc_manage_show_message('Reminder email sent successfully.');
+         list_saver_mailchimp_subscriber_event(false);
+         list_saver_manage_show_message('Reminder email sent successfully.');
         }
 
 		if( isset($_POST) && $_POST['delete_subscriber'] == 'delete' ){
-         $this->lc_mailchimp_subscriber_delete();
-         lc_manage_show_message('Active & Email Sent subscribers deleted successfully.');
+         $this->list_saver_mailchimp_subscriber_delete();
+         list_saver_manage_show_message('Active & Email Sent subscribers deleted successfully.');
         }
 		 $all_subscriptions=$this->Get(array(array('sub_status','=',$status)));
 		 ob_start();
-		 include( LC_VIEWS_PATH . '/view-manage-subscriptions.php');
+		 include( list_saver_VIEWS_PATH . '/view-manage-subscriptions.php');
 		 $output=ob_get_contents();
 		 ob_clean();
 		 
 		 return $output;
-	 }
-	 
-	 
-	
+	 }	
 }
 ?>

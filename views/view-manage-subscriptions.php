@@ -3,7 +3,7 @@
 <br>	
 <div class="container-fluid">	
 
-<?php if( $_GET['tab'] == 'lc_pending_subscriptions' && $all_subscriptions): ?>
+<?php if( $_GET['tab'] == 'list_saver_pending_subscriptions' && $all_subscriptions): ?>
  <div class='rows' style="height:38px"><div class='col-sm-11'>
  <form method="post" action="" style="float:right">
   <input type="hidden" name="pending_subscriber" value="send">
@@ -11,7 +11,7 @@
  </form>
 </div></div>
 <?php endif; ?>	
-<?php if( $_GET['tab'] == 'lc_active_subscriptions' ): ?>
+<?php if( $_GET['tab'] == 'list_saver_active_subscriptions' ): ?>
  <div class='rows' style="height:38px"><div class='col-sm-11'>
  <form method="post" action="" style="float:right">
   <input type="hidden" name="delete_subscriber" value="delete">

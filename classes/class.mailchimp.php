@@ -1,6 +1,6 @@
 <?php 
 
-class LC_MailChimp
+class List_Saver_MailChimp
 {
 	private $api_key;
 	private $api_endpoint = 'https://<dc>.api.mailchimp.com/2.0';

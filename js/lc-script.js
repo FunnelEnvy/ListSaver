@@ -21,7 +21,7 @@ jQuery(document).ready(function($){
     
     var form_data = {
        
-       action : 'lc_ajax_mailchimp_subscribe',
+       action : 'list_saver_ajax_mailchimp_subscribe',
        
        sub_email :  email,
        

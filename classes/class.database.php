@@ -4,11 +4,11 @@
 * @author Sandeep Kumar
 * @version 1.0
 */
- Class Database
+ Class List_Saver_Database
 {
 	private static $connection;
 
-	private function Database()
+	private function List_Saver_Database()
 	{
 		global $wpdb;
 		$this->connection=$wpdb;

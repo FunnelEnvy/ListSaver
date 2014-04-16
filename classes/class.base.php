@@ -1,11 +1,11 @@
 <?php
-if(!class_exists('Validator'))
+if(!class_exists('List_Saver_Validator'))
 include_once('class.validation.php');
 
-if(!class_exists('Database'))
+if(!class_exists('List_Saver_Database'))
 include_once('class.database.php');
 
-class Plugin_Base
+class List_Saver_Plugin_Base
 {
 	
 	protected $errors;
@@ -23,7 +23,7 @@ class Plugin_Base
 	 *
 	 * @return POG_Base
 	 */
-	private function Plugin_Base()
+	private function List_Saver_Plugin_Base()
 	{
 	}
 
@@ -49,7 +49,7 @@ class Plugin_Base
 	if(property_exists($this,$property))
 		{
 			
-			$validator = new Validator();
+			$validator = new List_Saver_Validator();
 			
 			if(isset($this->valiations[$property]))
 			{
