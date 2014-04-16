@@ -20,6 +20,7 @@ include_once('configuration.php');
 
 add_action( 'list_saver_mailchimp_event', 'list_saver_mailchimp_subscriber_event' );
 
+
 function list_saver_mailchimp_subscriber_event($is_cron=true){
  
   include_once( list_saver_CLASSES_PATH . '/class.subscription.php');
@@ -37,8 +38,22 @@ function list_saver_mailchimp_subscriber_event($is_cron=true){
 	
   $settings=get_option('list_saver_settings');
   
- 
+  if( $settings['mandrill'] == 'yes'){
+	
+	include( list_saver_CLASSES_PATH .'/class.mandrill.php');  
+	
+	$mandrill = new List_Saver_Mandrill(trim($settings['mandrll_api_key']));
+	
+	$resp = $mandrill->call("/users/ping", array());
+	
+	if($resp == 'PONG!')
+	
+	$mandrill_mail = true;
+  
+  }
     
+  
+  
   $api_key=$settings['list_saver_api_key'];
   
   $list_id=$settings['list_saver_list_id'];
@@ -147,6 +162,9 @@ return false;
   
 
 }
+
+
+
 
 /**
  * This function used to register all hooks.
@@ -296,7 +314,18 @@ function list_saver_settings()
                 </select>
                 <p class="description">Set number of days for reminder email after the user signs up </p>
 		</div>
-		
+		<div class='form-group'> 
+		<label>Use Mandrill Email</label>
+		 <select name="list_saver_settings[mandrill]" id="mandrill" class="form-control" style="width:70px;" onChange="if(this.value == 'yes') jQuery('#mandrill_options').show(); else jQuery('#mandrill_options').hide();">
+		   <option value="no" <?php selected($list_saver_settings['mandrill'], 'no'); ?>>No</option>
+		   <option value="yes" <?php selected($list_saver_settings['mandrill'], 'yes'); ?>>Yes</option>
+		 </select>
+		</div> 	
+		<div class='form-group' id="mandrill_options" style="display:<?php if($list_saver_settings['mandrill'] == 'yes') echo "inline"; else echo "none"; ?>;"> 
+		<label>Mandrill Api Key</label>
+		 <input type="text" name="list_saver_settings[mandrll_api_key]" id="mandrill_api_key" value="<?php echo esc_attr($list_saver_settings['mandrll_api_key']) ?>" class="form-control">
+		 </div> 
+		 
 		<h2><?php _e( 'Email/Message Settings', 'list_saver_language' ) ?></h2><br>
 		<div class='form-group'> 
 		<label>Subject</label>
@@ -541,7 +570,7 @@ function list_saver_confirm_subscription(){
 		 
 		 include_once( list_saver_CLASSES_PATH . '/class.subscription.php');
   
-         $subscription = new Subscription();
+         $subscription = new List_Saver_Subscription();
          
          $connection = List_Saver_Database::Connect();
          
