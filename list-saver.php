@@ -6,7 +6,7 @@
 
   Version: 1.0.0
 
-  Author: Sandeep Kumar
+  Author: Sandeep Kumar, Arun Sivashankaran, Eduardo Aguilar
 
   Author URI: www.funnelenvy.com
 
