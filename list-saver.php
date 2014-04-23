@@ -65,6 +65,14 @@ function list_saver_mailchimp_subscriber_event($is_cron=true){
   $connection = List_Saver_Database::Connect();
 
   $admin_email =  get_option('admin_email');
+  
+  $custom_message =  stripslashes($settings['list_saver_confirm_email']);
+  
+  // Added from email and name setting on email transction.
+  
+  $from_name =  $settings['list_saver_from_name'] ? stripslashes(trim($settings['list_saver_from_name'])) : get_option("blogname");  // new field from name
+  
+  $from_email =  $settings['list_saver_from_email'] ? stripslashes(trim($settings['list_saver_from_email'])) : $admin_email ;
 
   foreach( $results as $subscriber ){
 
@@ -99,7 +107,7 @@ if($is_cron==true)
 
 }
 
-		 $custom_message =  stripslashes($settings['list_saver_confirm_email']);
+		
 		 
 		 if(!$custom_message)
 		 continue;
@@ -131,12 +139,20 @@ if($is_cron==true)
 			
 			if($mandrill_mail){
 				
-			  if( $mandrill->send_mail($subscriber->sub_email, $subject, nl2br($custom_message) ) )
+			  // two new parametar passed $from_email and $from_name also changes in this class function.	
+				
+			  if( $mandrill->send_mail($subscriber->sub_email, $subject, nl2br($custom_message), $from_email, $from_name ) )
 			  
 			  List_Saver_Database::InsertOrUpdate($subscription->table,array('sub_email_sent' => 'true'),array('sub_id' => $subscriber->sub_id) );
 	
 				
 			}else{
+				 
+				 /*Two new filters added from and from name*/
+				 
+				add_filter( 'wp_mail_from', create_function(false, "return '$from_email';"));
+				
+				add_filter( 'wp_mail_from_name', create_function(false, "return '$from_name';"));
 				
 				if(wp_mail($subscriber->sub_email, $subject, nl2br($custom_message)) )
 				  // Now Update email_sent to true
@@ -314,6 +330,8 @@ function list_saver_settings()
                 </select>
                 <p class="description">Set number of days for reminder email after the user signs up </p>
 		</div>
+		<h2><?php _e( 'Email/Message Settings', 'list_saver_language' ) ?></h2><br>
+		<!-- Move fields in Email/Message section -->
 		<div class='form-group'> 
 		<label>Use Mandrill Email</label>
 		 <select name="list_saver_settings[mandrill]" id="mandrill" class="form-control" style="width:70px;" onChange="if(this.value == 'yes') jQuery('#mandrill_options').show(); else jQuery('#mandrill_options').hide();">
@@ -324,9 +342,21 @@ function list_saver_settings()
 		<div class='form-group' id="mandrill_options" style="display:<?php if($list_saver_settings['mandrill'] == 'yes') echo "inline"; else echo "none"; ?>;"> 
 		<label>Mandrill Api Key</label>
 		 <input type="text" name="list_saver_settings[mandrll_api_key]" id="mandrill_api_key" value="<?php echo esc_attr($list_saver_settings['mandrll_api_key']) ?>" class="form-control">
-		 </div> 
-		 
-		<h2><?php _e( 'Email/Message Settings', 'list_saver_language' ) ?></h2><br>
+		</div> 
+		<!-- Move End -->
+        
+        <!-- Added two new fields from email and from name -->
+        <div class='form-group'> 
+		<label>From Name</label>
+		<input type="text" class="form-control" style="width:500px;" name="list_saver_settings[list_saver_from_name]" id="list_saver_from_name" value="<?php echo stripslashes($list_saver_settings['list_saver_from_name']); ?>" />
+		</div> 	 
+		
+		<div class='form-group'> 
+		<label>From Email</label>
+		<input type="text" class="form-control" style="width:500px;" name="list_saver_settings[list_saver_from_email]" id="list_saver_from_email" value="<?php echo stripslashes($list_saver_settings['list_saver_from_email']); ?>" />
+		</div> 	 
+         <!-- Added -->
+         
 		<div class='form-group'> 
 		<label>Subject</label>
 		<input type="text" class="form-control" style="width:500px;" name="list_saver_settings[list_saver_mail_subject]" id="list_saver_mail_subject" value="<?php echo stripslashes($list_saver_settings['list_saver_mail_subject']); ?>" />

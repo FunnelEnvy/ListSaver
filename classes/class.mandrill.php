@@ -65,13 +65,13 @@ class List_Saver_Mandrill {
    
     }
     
-    public function send_mail( $to, $subject, $message ){
+    public function send_mail( $to, $subject, $message , $from_email, $from_name ){
 	
 	 $message = array(
         'html' => $message,
         'subject' => $subject,
-        'from_email' => get_option('admin_email'),
-        'from_name' => get_option('blogname'),
+        'from_email' => $from_email,
+        'from_name' => $from_name,
         'to' => array(
             array(
                 'email' => $to,
