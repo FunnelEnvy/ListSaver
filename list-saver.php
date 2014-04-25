@@ -28,6 +28,8 @@ function list_saver_mailchimp_subscriber_event($is_cron=true){
   $subscription = new List_Saver_Subscription();
 
   $results = $subscription->Get(array(array('sub_status','=','p')));
+  
+  update_option("list_saver_cron_status", time() );
  
   if( !$results )
   return;
@@ -221,7 +223,7 @@ function list_saver_register_list_saver_manage_menu_page(){
 
 function list_saver_manage_display(){
 	
-	$tabs = array( 'list_saver_active_subscriptions' => 'Active Subscriptions','list_saver_pending_subscriptions' => 'Pending Subscriptions','list_saver_settings' => 'Settings' );
+	$tabs = array( 'list_saver_active_subscriptions' => 'Active Subscriptions','list_saver_pending_subscriptions' => 'Pending Subscriptions','list_saver_settings' => 'Settings', 'list_saver_status' => 'Status' );
 	
 	echo '<div class="wrap">';
 	
@@ -253,6 +255,7 @@ function list_saver_manage_display(){
 
 	  case 'list_saver_settings'	:   list_saver_settings(); break;
 	  
+	  case 'list_saver_status'	:   list_saver_status(); break;
 	  
 	  default : list_saver_active_subscriptions();
 		
@@ -374,6 +377,25 @@ function list_saver_settings()
  </div>
      	
 <?php	
+}
+
+function list_saver_status(){
+
+  $date_format = get_option("date_format");
+  $time_format = get_option("time_format");	
+  $next_cron = wp_next_scheduled( 'list_saver_mailchimp_event' );
+  
+  if( $prev_cron = get_option("list_saver_cron_status"))
+  echo '<div id="messages" class="updated widefat"><p>Previous schedule run : <b>'.date($date_format." ".$time_format,$prev_cron).'</b></p></div>';
+  
+  if($next_cron)
+  echo '<div id="messages" class="error"><p>Next schedule run : <b>'.date($date_format." ".$time_format,$next_cron).'</b></p></div>';
+  
+ 
+   
+ 
+  //echo wp_next_scheduled( 'list_saver_mailchimp_event' );
+
 }
 /**
  * This function used to show success/failure message in backend.
